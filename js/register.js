@@ -36,6 +36,11 @@ const deleteDialog = document.getElementById("deleteDialog");
 let rating = 0;
 let previewUrls = [];
 let existingUrls = [];
+// 選んだ直後に圧縮した写真（J-22）。送信のときに元のファイルを読み直さない。
+let selectedPhotos = [];
+let photosReady = Promise.resolve();
+let photoProblem = "";
+let selectionId = 0;
 let callbacks = {
   onUnauthorized: () => {},
   onSaved: () => {},
@@ -139,21 +144,46 @@ export function setRegisterCallbacks(next) {
 // ---------- 写真の下見 ----------
 
 function clearPreview() {
+  selectionId += 1;
   previewUrls.forEach((url) => URL.revokeObjectURL(url));
   previewUrls = [];
+  selectedPhotos = [];
+  photosReady = Promise.resolve();
+  photoProblem = "";
   photoPreview.textContent = "";
 }
 
-photoInput.addEventListener("change", () => {
-  clearPreview();
-  for (const file of [...photoInput.files].slice(0, MAX_PHOTOS)) {
-    const url = URL.createObjectURL(file);
+async function preparePhotos(files, id) {
+  for (const file of files) {
+    let compressed;
+    try {
+      compressed = await compressImage(file);
+    } catch (err) {
+      if (id === selectionId) {
+        // 選択ごと取り消す。同じ写真をもう一度選べるように、入力欄も空にする。
+        clearPreview();
+        photoInput.value = "";
+        photoProblem = err.message;
+        message.textContent = err.message;
+      }
+      return;
+    }
+    if (id !== selectionId) {
+      return;
+    }
+    selectedPhotos.push(compressed);
+    const url = URL.createObjectURL(compressed);
     previewUrls.push(url);
     const img = document.createElement("img");
     img.src = url;
     img.alt = "選んだ写真";
     photoPreview.append(img);
   }
+}
+
+photoInput.addEventListener("change", () => {
+  clearPreview();
+  photosReady = preparePhotos([...photoInput.files].slice(0, MAX_PHOTOS), selectionId);
 });
 
 // ---------- 修正（D-19） ----------
@@ -376,13 +406,20 @@ function showResult(result) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const problem = validateBeforeSend();
+  const idleLabel = submitButton.textContent;
+  submitButton.disabled = true;
+  submitButton.textContent = "写真を準備しています…";
+  await photosReady;
+  submitButton.disabled = false;
+  submitButton.textContent = idleLabel;
+
+  const problem = photoProblem || validateBeforeSend();
+  photoProblem = "";
   if (problem) {
     message.textContent = problem;
     return;
   }
 
-  const idleLabel = submitButton.textContent;
   message.textContent = "";
   submitButton.disabled = true;
   submitButton.textContent = "照合しています…";
@@ -400,8 +437,8 @@ form.addEventListener("submit", async (event) => {
     body.set("purchasedOn", dateInput.value);
     body.set("rating", String(rating));
     body.set("memo", memoInput.value.trim());
-    for (const file of photoInput.files) {
-      body.append("photos", await compressImage(file), "photo.jpg");
+    for (const photo of selectedPhotos) {
+      body.append("photos", photo, "photo.jpg");
     }
     if (editing) {
       editing.removePhotoIds.forEach((id) => body.append("removePhotoIds", id));
