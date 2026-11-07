@@ -1,0 +1,279 @@
+/* 切手帳の見立て：未所有の枠が並び、手に入れた分だけ金の縁で埋まる。
+   色と書体は公式の意匠に寄せない（C-06）。外部フォントは読み込まない。 */
+:root {
+  --paper: #e8edeb;
+  --sheet: #f6f8f7;
+  --ink: #14304a;
+  --ink-soft: #4d6275;
+  --rim: #b5891f;
+  --rim-light: #efe0b0;
+  --slot: #b9c6c8;
+  --seal: #1f6f5c;
+  --alert: #96392a;
+  --serif: "Noto Serif CJK JP", "Noto Serif JP", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --sans: "Noto Sans CJK JP", "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.7 var(--sans);
+}
+
+:focus-visible { outline: 3px solid var(--rim); outline-offset: 2px; }
+
+/* ---------- ログイン ---------- */
+.login {
+  max-width: 26rem;
+  margin: 0 auto;
+  padding: 18vh 1.5rem 2rem;
+}
+.login-title {
+  margin: 0;
+  font: 700 2.4rem/1.3 var(--serif);
+}
+.login-note { margin: .5rem 0 2rem; color: var(--ink-soft); }
+
+/* ---------- 見出し ---------- */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: .9rem 1rem 0;
+  background: var(--ink);
+  color: var(--sheet);
+}
+.masthead-title { margin: 0; font: 700 1.5rem/1.3 var(--serif); }
+.masthead-summary { margin: .1rem 0 .6rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
+.tabs { display: flex; gap: .25rem; }
+.tab {
+  flex: 1;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  color: var(--sheet);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.tab[aria-pressed="true"] { background: var(--paper); color: var(--ink); }
+
+main { max-width: 44rem; margin: 0 auto; padding: 1rem; }
+
+/* ---------- 図鑑 ---------- */
+.sort-row { display: flex; align-items: center; justify-content: flex-end; gap: .5rem; font-size: .875rem; }
+.sort-row .link-button { margin-right: auto; }
+.region-name {
+  margin: 1.5rem 0 .25rem;
+  font: 700 1.05rem/1.4 var(--serif);
+  color: var(--ink-soft);
+}
+.pref { border-bottom: 1px solid var(--slot); scroll-margin-top: 10.5rem; }
+.region-name { scroll-margin-top: 10.5rem; }
+.pref summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: .75rem;
+  min-height: 3rem;
+  padding: .4rem .25rem;
+  cursor: pointer;
+  list-style: none;
+}
+.pref summary::-webkit-details-marker { display: none; }
+.pref-name { font: 700 1.125rem/1.3 var(--serif); }
+.pref-count { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 3px; min-height: 8px; }
+.pip { width: 12px; height: 8px; border: 1px solid var(--slot); }
+.pip-filled { background: var(--rim); border-color: var(--rim); }
+.pref-complete .pref-name { color: var(--rim); }
+.pref-empty { color: var(--ink-soft); }
+.pref-body { padding: .5rem 0 1rem; }
+.pref-none { margin: 0 0 .5rem; color: var(--ink-soft); font-size: .875rem; }
+.pref-empty .pref-count { font-weight: 400; font-size: .875rem; }
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: .6rem;
+}
+.slot {
+  display: flex;
+  flex-direction: column;
+  min-height: 9.5rem;
+  background: var(--sheet);
+  font-size: .8125rem;
+  line-height: 1.45;
+}
+.slot-owned { border: 2px solid var(--rim); }
+.slot-hidden {
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--slot);
+  background: transparent;
+  color: var(--ink-soft);
+  font: 700 1.25rem/1 var(--serif);
+  letter-spacing: .1em;
+}
+.slot-photo { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--slot); }
+.slot-text { padding: .3rem .4rem .4rem; overflow-wrap: anywhere; }
+.slot-name { display: block; font-weight: 700; }
+.slot-meta { display: block; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.group-label { margin: 1rem 0 .4rem; font-size: .875rem; font-weight: 700; color: var(--ink-soft); }
+.slot-unmatched { border: 2px solid var(--alert); }
+
+/* ---------- 登録 ---------- */
+.field { margin-bottom: 1.1rem; }
+.field label, .field-label { display: block; margin-bottom: .2rem; font-size: .9375rem; font-weight: 700; }
+input[type="text"], input[type="date"], input[type="file"], select, textarea {
+  width: 100%;
+  min-height: 2.9rem;
+  padding: .5rem .6rem;
+  border: 1px solid var(--ink-soft);
+  border-radius: 3px;
+  background: var(--sheet);
+  color: var(--ink);
+  font: inherit;
+}
+.sort-row select { width: auto; min-height: 2.4rem; padding: .2rem .4rem; }
+.field-hint { margin: .3rem 0 0; font-size: .875rem; color: var(--ink-soft); }
+.photo-preview { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+.photo-preview img { width: 4.5rem; height: 4.5rem; object-fit: cover; border: 1px solid var(--slot); }
+.carry { margin: 0 0 1.1rem; padding: .75rem .75rem 0; border: 1px solid var(--slot); border-radius: 3px; }
+.carry legend { padding: 0 .35rem; font-weight: 700; }
+.carry-note { margin: 0 0 .75rem; font-size: .875rem; color: var(--ink-soft); }
+.rating { display: flex; gap: .25rem; }
+.rating button {
+  width: 2.9rem;
+  height: 2.9rem;
+  border: 1px solid var(--slot);
+  border-radius: 3px;
+  background: var(--sheet);
+  color: var(--slot);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.rating button.on { color: var(--rim); border-color: var(--rim); }
+
+.button {
+  min-height: 2.9rem;
+  padding: .4rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.button-primary { width: 100%; background: var(--ink); color: var(--sheet); }
+.button-danger { width: 100%; margin-top: 1.25rem; border-color: var(--alert); color: var(--alert); }
+.result-actions .button-danger { margin-top: 0; background: var(--alert); color: var(--sheet); }
+.button:disabled { opacity: .55; cursor: progress; }
+.message { min-height: 1.5em; margin: .5rem 0; font-size: .9375rem; }
+.message-error { color: var(--alert); font-weight: 700; }
+
+/* ---------- 修正 ---------- */
+.edit-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: 1.1rem;
+  padding: .6rem .75rem;
+  border-left: 4px solid var(--rim);
+  background: var(--rim-light);
+  font-weight: 700;
+}
+.existing-photos { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: .75rem; }
+.existing-photo { display: flex; flex-direction: column; gap: .25rem; width: 6rem; }
+.existing-photo img { width: 6rem; height: 6rem; object-fit: cover; border: 1px solid var(--slot); background: var(--slot); }
+.existing-photo.is-removed img { opacity: .3; }
+.slot-edit {
+  min-height: 2.75rem;
+  margin-top: auto;
+  border: 0;
+  border-top: 1px solid var(--slot);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.record-close { margin-top: .5rem; }
+
+/* ---------- 照合結果：このアプリで一番目立たせる場面 ---------- */
+.result {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 1.75rem 1.25rem 1.25rem;
+  border: 0;
+  background: var(--sheet);
+  color: var(--ink);
+  text-align: center;
+}
+.result::backdrop { background: rgba(20, 48, 74, .72); }
+.seal {
+  display: grid;
+  place-items: center;
+  width: 8.5rem;
+  height: 8.5rem;
+  margin: 0 auto 1rem;
+  border: 5px double var(--seal);
+  border-radius: 50%;
+  color: var(--seal);
+  font: 700 2.1rem/1 var(--serif);
+  transform: rotate(-9deg);
+  animation: seal-press 420ms cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.seal-complete { border-color: var(--rim); color: var(--rim); font-size: 1.5rem; }
+.seal-unmatched {
+  border: 3px dashed var(--ink-soft);
+  color: var(--ink-soft);
+  font-size: 1.5rem;
+  transform: none;
+  animation: none;
+}
+@keyframes seal-press {
+  from { opacity: 0; transform: rotate(-9deg) scale(2.4); }
+  to { opacity: 1; transform: rotate(-9deg) scale(1); }
+}
+.result-headline { margin: 0 0 .25rem; font: 700 1.25rem/1.5 var(--serif); overflow-wrap: anywhere; }
+.result-detail { margin: 0 0 1.25rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.result-actions { display: grid; gap: .5rem; }
+.result-actions .button { width: 100%; }
+
+/* ---------- 診断・フッター ---------- */
+.diagnostics { width: min(30rem, calc(100vw - 2rem)); border: 0; background: var(--sheet); color: var(--ink); }
+.diagnostics h2 { margin: 0 0 .5rem; font: 700 1.25rem/1.4 var(--serif); }
+.diagnostics dt { margin-top: .5rem; font-size: .8125rem; font-weight: 700; color: var(--ink-soft); }
+.diagnostics dd { margin: 0 0 .25rem; overflow-wrap: anywhere; font-size: .875rem; }
+.footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem 1rem 2rem;
+  color: var(--ink-soft);
+  font-size: .8125rem;
+}
+.link-button {
+  min-height: 2.75rem;
+  padding: 0 .25rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seal { animation: none; }
+}

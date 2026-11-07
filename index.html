@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' https://accounts.google.com/gsi/style; frame-src https://accounts.google.com/gsi/; connect-src 'self' http://localhost:8797 https://hachi-zukan-api.ryo-furutani.workers.dev https://accounts.google.com/gsi/; img-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>hachi-zukan</title>
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+<section id="loginScreen" class="login">
+  <h1 class="login-title">hachi-zukan</h1>
+  <p class="login-note">招待された人だけが使えます。</p>
+  <div id="googleButton"></div>
+  <p id="loginMessage" class="message" role="status"></p>
+</section>
+
+<div id="mainScreen" hidden>
+  <header class="masthead">
+    <h1 id="appTitle" class="masthead-title"></h1>
+    <p id="summaryLine" class="masthead-summary"></p>
+    <nav class="tabs" aria-label="画面の切り替え">
+      <button id="tabZukan" type="button" class="tab" aria-pressed="true">図鑑</button>
+      <button id="tabRegister" type="button" class="tab" aria-pressed="false">登録</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="zukanView">
+      <div class="sort-row">
+        <button id="exportButton" type="button" class="link-button">記録をCSVで書き出す</button>
+        <label for="sortOrder">並び</label>
+        <select id="sortOrder">
+          <option value="north">北から</option>
+          <option value="progress">進捗順</option>
+        </select>
+      </div>
+      <p id="zukanMessage" class="message" role="status"></p>
+      <div id="zukanList"></div>
+    </section>
+
+    <section id="registerView" hidden>
+      <form id="registerForm" novalidate>
+        <div id="editBanner" class="edit-banner" hidden>
+          <span>登録済みの記録を修正しています</span>
+          <button id="editCancelButton" type="button" class="button">修正をやめる</button>
+        </div>
+        <div class="field">
+          <div id="existingPhotos" class="existing-photos" hidden></div>
+          <label for="photoInput">写真（台紙ごと・5枚まで）</label>
+          <input id="photoInput" type="file" accept="image/*" multiple required>
+          <div id="photoPreview" class="photo-preview"></div>
+        </div>
+        <div class="field">
+          <label for="nameInput">名前（台紙の「」内の文字）</label>
+          <input id="nameInput" type="text" maxlength="50" required autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="prefSelect">商品の都道府県・広域（台紙の表記）</label>
+          <select id="prefSelect" required></select>
+          <p id="prefHint" class="field-hint">台紙が「北九州」「神戸」など都市名のときは、その県を選んでください。</p>
+        </div>
+        <div class="field">
+          <label for="codeInput">JAN・品番（任意・台紙の裏）</label>
+          <input id="codeInput" type="text" maxlength="20" autocomplete="off">
+          <p class="field-hint">バーコードの13桁、または「CKW 12345」「12345」の形で入れられます。</p>
+        </div>
+        <div class="field">
+          <span class="field-label" id="ratingLabel">気に入り度（★1〜5）</span>
+          <div id="ratingGroup" class="rating" role="radiogroup" aria-labelledby="ratingLabel"></div>
+        </div>
+        <fieldset class="carry">
+          <legend>買った日と場所</legend>
+          <p id="carryNote" class="carry-note" hidden></p>
+          <div class="field">
+            <label for="dateInput">購入日</label>
+            <input id="dateInput" type="date" required>
+          </div>
+          <div class="field">
+            <label for="purchasePrefSelect">買った都道府県</label>
+            <select id="purchasePrefSelect" required></select>
+          </div>
+          <div class="field">
+            <label for="placeInput">店名・施設名（任意）</label>
+            <input id="placeInput" type="text" maxlength="50" autocomplete="off">
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="memoInput">メモ（任意・200文字まで）</label>
+          <textarea id="memoInput" rows="2" maxlength="200"></textarea>
+        </div>
+        <p id="registerMessage" class="message message-error" role="alert"></p>
+        <button id="registerButton" type="submit" class="button button-primary">登録して照合する</button>
+        <button id="deleteButton" type="button" class="button button-danger" hidden>この記録を削除する</button>
+      </form>
+    </section>
+  </main>
+</div>
+
+<dialog id="resultDialog" class="result">
+  <div id="resultSeal" class="seal"></div>
+  <p id="resultHeadline" class="result-headline"></p>
+  <p id="resultDetail" class="result-detail"></p>
+  <div class="result-actions">
+    <button id="resultContinue" type="button" class="button button-primary">続けて登録</button>
+    <button id="resultToZukan" type="button" class="button">図鑑を見る</button>
+    <button id="resultEdit" type="button" class="button">この記録を直す</button>
+  </div>
+</dialog>
+
+<dialog id="deleteDialog" class="result">
+  <p class="result-headline">この記録を削除しますか？</p>
+  <p class="result-detail">写真も一緒に消えます。元に戻せません。</p>
+  <div class="result-actions">
+    <button id="deleteConfirm" type="button" class="button button-danger">削除する</button>
+    <button id="deleteCancel" type="button" class="button">やめる</button>
+  </div>
+</dialog>
+
+<dialog id="recordDialog" class="result">
+  <p class="result-headline">どの記録を直しますか？</p>
+  <div id="recordList" class="result-actions"></div>
+  <div class="result-actions record-close">
+    <button id="recordCancel" type="button" class="button">やめる</button>
+  </div>
+</dialog>
+
+<dialog id="diagnosticsDialog" class="diagnostics">
+  <h2>診断</h2>
+  <dl id="diagnosticsList"></dl>
+  <button id="diagnosticsClose" type="button" class="button">閉じる</button>
+</dialog>
+
+<footer class="footer">
+  <span id="versionLabel"></span>
+  <button id="diagnosticsButton" type="button" class="link-button">診断</button>
+  <button id="logoutButton" type="button" class="link-button" hidden>ログアウト</button>
+</footer>
+
+</body>
+</html>
