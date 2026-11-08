@@ -3,7 +3,7 @@ import { fetchMe } from "./api.js";
 import { APP_VERSION, GOOGLE_CLIENT_ID, IS_GOOGLE_CONFIGURED } from "./config.js";
 import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store.js";
 import { refreshZukan, clearZukan, setZukanEditHandler, setZukanUnauthorizedHandler } from "./zukan.js";
-import { cancelEdit, prepareRegisterForm, setRegisterCallbacks, startEdit } from "./register.js";
+import { cancelEdit, prepareRegisterForm, resetRegisterForm, setRegisterCallbacks, startEdit } from "./register.js";
 import "./diagnostics.js";
 
 const loginScreen = document.getElementById("loginScreen");
@@ -73,7 +73,8 @@ async function checkLoginState() {
 
     // ログインし直しのときは入力中の内容を消さない。
     if (!formPrepared) {
-      await prepareRegisterForm(me.lastInput);
+      // 前回の入力は引き継がない（J-23）。/api/me の lastInput は使わない。
+      await prepareRegisterForm();
       formPrepared = true;
     }
     await refreshZukan();
@@ -123,7 +124,13 @@ tabZukan.addEventListener("click", () => {
   showTab("zukan");
   refreshZukan();
 });
-tabRegister.addEventListener("click", () => showTab("register"));
+tabRegister.addEventListener("click", () => {
+  // 図鑑から登録を開いたときは初期状態にする（J-23）。登録を開いている最中に押しても消さない。
+  if (registerView.hidden) {
+    resetRegisterForm();
+  }
+  showTab("register");
+});
 logoutButton.addEventListener("click", () => {
   cancelEdit();
   clearIdToken();

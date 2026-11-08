@@ -54,7 +54,9 @@
           <div id="existingPhotos" class="existing-photos" hidden></div>
           <label for="photoInput">写真（台紙ごと・5枚まで）</label>
           <input id="photoInput" type="file" accept="image/*" multiple required>
+          <p id="photoCount" class="field-hint" aria-live="polite"></p>
           <div id="photoPreview" class="photo-preview"></div>
+          <button id="clearPhotosButton" type="button" class="button button-small" hidden>写真をすべて取り消す</button>
         </div>
         <div class="field">
           <label for="nameInput">名前（台紙の「」内の文字）</label>
@@ -76,7 +78,6 @@
         </div>
         <fieldset class="carry">
           <legend>買った日と場所</legend>
-          <p id="carryNote" class="carry-note" hidden></p>
           <div class="field">
             <label for="dateInput">購入日</label>
             <input id="dateInput" type="date" required>

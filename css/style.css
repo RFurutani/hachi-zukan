@@ -142,11 +142,26 @@ input[type="text"], input[type="date"], input[type="file"], select, textarea {
 }
 .sort-row select { width: auto; min-height: 2.4rem; padding: .2rem .4rem; }
 .field-hint { margin: .3rem 0 0; font-size: .875rem; color: var(--ink-soft); }
-.photo-preview { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
-.photo-preview img { width: 4.5rem; height: 4.5rem; object-fit: cover; border: 1px solid var(--slot); }
+.photo-preview { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .4rem; }
+.photo-preview:empty { display: none; }
+.photo-thumb { position: relative; width: 6rem; height: 6rem; }
+.photo-thumb img { width: 100%; height: 100%; object-fit: cover; border: 1px solid var(--slot); display: block; }
+.photo-remove {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 0 0 0 6px;
+  background: rgba(20, 48, 74, .82);
+  color: var(--sheet);
+  font: 700 1.5rem/1 var(--sans);
+  cursor: pointer;
+}
+.button-small { margin-top: .5rem; }
 .carry { margin: 0 0 1.1rem; padding: .75rem .75rem 0; border: 1px solid var(--slot); border-radius: 3px; }
 .carry legend { padding: 0 .35rem; font-weight: 700; }
-.carry-note { margin: 0 0 .75rem; font-size: .875rem; color: var(--ink-soft); }
 .rating { display: flex; gap: .25rem; }
 .rating button {
   width: 2.9rem;

@@ -1,5 +1,6 @@
-// 登録画面（F-01・連続登録）、記録の修正・削除（D-19）、照合結果の演出（F-02）。
+// 登録画面（F-01）、記録の修正・削除（D-19）、照合結果の演出（F-02）。
 // 表示は textContent のみ（S-04）。
+// 前回の入力は引き継がない（J-23）。登録の保存後・登録タブを開いたとき・修正をやめたときは全項目を初期状態に戻す。
 import { deleteItem, fetchItem, fetchPhoto, fetchPrefectures, patchItem, postItem } from "./api.js";
 import { compressImage } from "./photo.js";
 
@@ -13,6 +14,8 @@ const editCancelButton = document.getElementById("editCancelButton");
 const existingPhotos = document.getElementById("existingPhotos");
 const photoInput = document.getElementById("photoInput");
 const photoPreview = document.getElementById("photoPreview");
+const photoCount = document.getElementById("photoCount");
+const clearPhotosButton = document.getElementById("clearPhotosButton");
 const nameInput = document.getElementById("nameInput");
 const prefSelect = document.getElementById("prefSelect");
 const codeInput = document.getElementById("codeInput");
@@ -21,7 +24,6 @@ const dateInput = document.getElementById("dateInput");
 const placeInput = document.getElementById("placeInput");
 const memoInput = document.getElementById("memoInput");
 const ratingGroup = document.getElementById("ratingGroup");
-const carryNote = document.getElementById("carryNote");
 const message = document.getElementById("registerMessage");
 const submitButton = document.getElementById("registerButton");
 const deleteButton = document.getElementById("deleteButton");
@@ -34,12 +36,14 @@ const detail = document.getElementById("resultDetail");
 const deleteDialog = document.getElementById("deleteDialog");
 
 let rating = 0;
-let previewUrls = [];
 let existingUrls = [];
-// 選んだ直後に圧縮した写真（J-22）。送信のときに元のファイルを読み直さない。
+// 選んだ直後に圧縮した写真（J-22）。送信のときに元のファイルを読み直さない。要素は { blob, url }。
 let selectedPhotos = [];
+// 圧縮中の枚数。上限の判定と枚数表示に含める。
+let pendingCount = 0;
 let photosReady = Promise.resolve();
 let photoProblem = "";
+// 「すべて取り消す」などで選択をやり直したら増やし、それより前の圧縮の結果を捨てる。
 let selectionId = 0;
 let callbacks = {
   onUnauthorized: () => {},
@@ -51,8 +55,6 @@ let callbacks = {
 
 // 修正中の記録。null なら新規登録。
 let editing = null;
-// 修正に入る前の「買った日と場所」。修正が終わったら連続登録の値に戻す。
-let carrySnapshot = null;
 let lastSavedItemId = null;
 
 function todayLocal() {
@@ -114,7 +116,7 @@ function fillPrefSelect(select, regions, wideAreas = []) {
   }
 }
 
-export async function prepareRegisterForm(lastInput) {
+export async function prepareRegisterForm() {
   const res = await fetchPrefectures();
   if (!res.ok) {
     throw new Error(`都道府県を読み込めませんでした（HTTP ${res.status}）`);
@@ -122,69 +124,147 @@ export async function prepareRegisterForm(lastInput) {
   const { regions, wideAreas } = await res.json();
   fillPrefSelect(prefSelect, regions, wideAreas);
   fillPrefSelect(purchasePrefSelect, regions);
-
   dateInput.max = todayLocal();
-  if (lastInput) {
-    // 前回の日付と買った場所を引き継ぐ。別の日に買った分のために、引き継いだことを明示する。
-    dateInput.value = lastInput.purchasedOn;
-    purchasePrefSelect.value = lastInput.purchasePrefCode;
-    placeInput.value = lastInput.placeName || "";
-    carryNote.textContent = "前回の登録から引き継いでいます。違うときは書き換えてください。";
-    carryNote.hidden = false;
-  } else {
-    dateInput.value = todayLocal();
-    carryNote.hidden = true;
-  }
+  resetForm();
 }
 
 export function setRegisterCallbacks(next) {
   callbacks = { ...callbacks, ...next };
 }
 
-// ---------- 写真の下見 ----------
+// ---------- 写真（選択・取り消し） ----------
 
-function clearPreview() {
+function keptPhotoCount() {
+  return editing ? editing.photoCount - editing.removePhotoIds.size : 0;
+}
+
+function updatePhotoCount() {
+  const total = keptPhotoCount() + selectedPhotos.length + pendingCount;
+  const preparing = pendingCount > 0 ? "（準備中）" : "";
+  photoCount.textContent = total > 0 ? `写真 ${total}/${MAX_PHOTOS}枚${preparing}` : "";
+}
+
+function renderSelectedPhotos() {
+  photoPreview.textContent = "";
+  for (const photo of selectedPhotos) {
+    const box = document.createElement("div");
+    box.className = "photo-thumb";
+    const img = document.createElement("img");
+    img.src = photo.url;
+    img.alt = "選んだ写真";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "photo-remove";
+    remove.textContent = "×";
+    remove.setAttribute("aria-label", "この写真を外す");
+    remove.addEventListener("click", () => removeSelectedPhoto(photo));
+    box.append(img, remove);
+    photoPreview.append(box);
+  }
+  clearPhotosButton.hidden = selectedPhotos.length === 0;
+  updatePhotoCount();
+}
+
+function removeSelectedPhoto(photo) {
+  URL.revokeObjectURL(photo.url);
+  selectedPhotos = selectedPhotos.filter((p) => p !== photo);
+  photoInput.value = "";
+  message.textContent = "";
+  renderSelectedPhotos();
+}
+
+function clearSelectedPhotos() {
   selectionId += 1;
-  previewUrls.forEach((url) => URL.revokeObjectURL(url));
-  previewUrls = [];
+  selectedPhotos.forEach((photo) => URL.revokeObjectURL(photo.url));
   selectedPhotos = [];
+  pendingCount = 0;
   photosReady = Promise.resolve();
   photoProblem = "";
-  photoPreview.textContent = "";
+  photoInput.value = "";
+  renderSelectedPhotos();
 }
 
 async function preparePhotos(files, id) {
   for (const file of files) {
-    let compressed;
+    let compressed = null;
+    let failure = null;
     try {
       compressed = await compressImage(file);
     } catch (err) {
-      if (id === selectionId) {
-        // 選択ごと取り消す。同じ写真をもう一度選べるように、入力欄も空にする。
-        clearPreview();
-        photoInput.value = "";
-        photoProblem = err.message;
-        message.textContent = err.message;
-      }
-      return;
+      failure = err;
     }
     if (id !== selectionId) {
       return;
     }
-    selectedPhotos.push(compressed);
-    const url = URL.createObjectURL(compressed);
-    previewUrls.push(url);
-    const img = document.createElement("img");
-    img.src = url;
-    img.alt = "選んだ写真";
-    photoPreview.append(img);
+    pendingCount -= 1;
+    if (failure) {
+      // 開けなかった写真だけ外す。理由は送信のときにもう一度見せる。
+      photoProblem = failure.message;
+      message.textContent = failure.message;
+    } else {
+      selectedPhotos.push({ blob: compressed, url: URL.createObjectURL(compressed) });
+    }
+    renderSelectedPhotos();
   }
 }
 
 photoInput.addEventListener("change", () => {
-  clearPreview();
-  photosReady = preparePhotos([...photoInput.files].slice(0, MAX_PHOTOS), selectionId);
+  const files = [...photoInput.files];
+  // 同じファイルをもう一度選んでも change が起きるように、すぐ空にする（File は手元に持っている）。
+  photoInput.value = "";
+  if (files.length === 0) {
+    return;
+  }
+  const room = MAX_PHOTOS - keptPhotoCount() - selectedPhotos.length - pendingCount;
+  if (files.length > room) {
+    message.textContent =
+      room > 0
+        ? `写真は${MAX_PHOTOS}枚までです。あと${room}枚選べます。`
+        : `写真は${MAX_PHOTOS}枚までです。追加するときは、どれかを外してください。`;
+    return;
+  }
+  pendingCount += files.length;
+  updatePhotoCount();
+  const id = selectionId;
+  photosReady = photosReady.then(() => preparePhotos(files, id));
 });
+
+clearPhotosButton.addEventListener("click", () => {
+  clearSelectedPhotos();
+  message.textContent = "";
+});
+
+// ---------- 初期状態 ----------
+
+function leaveEdit() {
+  editing = null;
+  clearExistingPhotos();
+  editBanner.hidden = true;
+  deleteButton.hidden = true;
+  submitButton.textContent = "登録して照合する";
+}
+
+// 全項目を初期状態に戻す（J-23）。購入日は空欄、都道府県は「選んでください」。
+function resetForm() {
+  if (editing) {
+    leaveEdit();
+  }
+  clearSelectedPhotos();
+  nameInput.value = "";
+  prefSelect.value = "";
+  codeInput.value = "";
+  setRating(0);
+  dateInput.value = "";
+  purchasePrefSelect.value = "";
+  placeInput.value = "";
+  memoInput.value = "";
+  message.textContent = "";
+}
+
+// 図鑑タブから登録タブを開いたときに呼ぶ。
+export function resetRegisterForm() {
+  resetForm();
+}
 
 // ---------- 修正（D-19） ----------
 
@@ -217,6 +297,7 @@ function renderExistingPhotos(photoIds) {
       box.classList.toggle("is-removed", removing);
       toggle.textContent = removing ? "戻す" : "外す";
       message.textContent = "";
+      updatePhotoCount();
     });
     box.append(img, toggle);
     existingPhotos.append(box);
@@ -246,19 +327,8 @@ export async function startEdit(itemId) {
   }
   const item = await res.json();
 
-  if (!editing) {
-    carrySnapshot = {
-      date: dateInput.value,
-      purchasePref: purchasePrefSelect.value,
-      place: placeInput.value,
-      noteText: carryNote.textContent,
-      noteHidden: carryNote.hidden,
-    };
-  }
+  resetForm();
   editing = { id: item.id, photoCount: item.photoIds.length, removePhotoIds: new Set() };
-
-  photoInput.value = "";
-  clearPreview();
   nameInput.value = item.inputName;
   prefSelect.value = item.wideArea ? `${WIDE_PREFIX}${item.wideArea}` : item.prefCode;
   codeInput.value = item.code;
@@ -267,9 +337,8 @@ export async function startEdit(itemId) {
   purchasePrefSelect.value = item.purchasePrefCode;
   placeInput.value = item.placeName || "";
   memoInput.value = item.memo || "";
-  message.textContent = "";
-  carryNote.hidden = true;
   renderExistingPhotos(item.photoIds);
+  updatePhotoCount();
 
   editBanner.hidden = false;
   deleteButton.hidden = false;
@@ -278,38 +347,9 @@ export async function startEdit(itemId) {
   window.scrollTo(0, 0);
 }
 
-function leaveEdit() {
-  editing = null;
-  clearExistingPhotos();
-  editBanner.hidden = true;
-  deleteButton.hidden = true;
-  submitButton.textContent = "登録して照合する";
-  if (carrySnapshot) {
-    dateInput.value = carrySnapshot.date;
-    purchasePrefSelect.value = carrySnapshot.purchasePref;
-    placeInput.value = carrySnapshot.place;
-    carryNote.textContent = carrySnapshot.noteText;
-    carryNote.hidden = carrySnapshot.noteHidden;
-    carrySnapshot = null;
-  }
-}
-
-// 商品ごとに違う項目だけ空にする。
-function clearItemFields() {
-  photoInput.value = "";
-  clearPreview();
-  nameInput.value = "";
-  codeInput.value = "";
-  prefSelect.value = "";
-  memoInput.value = "";
-  setRating(0);
-  message.textContent = "";
-}
-
 export function cancelEdit() {
   if (editing) {
-    leaveEdit();
-    clearItemFields();
+    resetForm();
   }
 }
 
@@ -333,8 +373,7 @@ document.getElementById("deleteConfirm").addEventListener("click", async () => {
       message.textContent = data.error || `削除できませんでした（HTTP ${res.status}）。`;
       return;
     }
-    leaveEdit();
-    clearItemFields();
+    resetForm();
     callbacks.onDeleted();
   } catch {
     message.textContent = "サーバーに接続できません。通信を確認してもう一度押してください。";
@@ -352,8 +391,7 @@ ratingGroup.addEventListener("click", () => {
 });
 
 function validateBeforeSend() {
-  const kept = editing ? editing.photoCount - editing.removePhotoIds.size : 0;
-  const total = kept + photoInput.files.length;
+  const total = keptPhotoCount() + selectedPhotos.length;
   if (total === 0) return "写真を1枚以上選んでください。";
   if (total > MAX_PHOTOS) return `写真は${MAX_PHOTOS}枚までです。`;
   if (!nameInput.value.trim()) return "名前を入力してください。";
@@ -364,17 +402,6 @@ function validateBeforeSend() {
   if (!dateInput.value) return "購入日を入れてください。";
   if (!purchasePrefSelect.value) return "買った都道府県を選んでください。";
   return "";
-}
-
-function resetForNext() {
-  // 日付と買った場所は残す。商品の県は選び間違えると「新商品かも」と誤判定されるので、毎回選び直してもらう。
-  if (editing) {
-    leaveEdit();
-  } else {
-    carryNote.textContent = "買った日と場所は前回のままです。違うときは書き換えてください。";
-    carryNote.hidden = false;
-  }
-  clearItemFields();
 }
 
 function showResult(result) {
@@ -438,7 +465,7 @@ form.addEventListener("submit", async (event) => {
     body.set("rating", String(rating));
     body.set("memo", memoInput.value.trim());
     for (const photo of selectedPhotos) {
-      body.append("photos", photo, "photo.jpg");
+      body.append("photos", photo.blob, "photo.jpg");
     }
     if (editing) {
       editing.removePhotoIds.forEach((id) => body.append("removePhotoIds", id));
@@ -456,6 +483,9 @@ form.addEventListener("submit", async (event) => {
       return;
     }
     lastSavedItemId = data.itemId;
+    // 保存できたらすぐ初期状態に戻す（結果の画面を Esc で閉じても、同じ内容を二重に送らないように）。
+    submitButton.disabled = false;
+    resetForm();
     callbacks.onSaved();
     showResult(data);
   } catch (err) {
@@ -465,28 +495,22 @@ form.addEventListener("submit", async (event) => {
         : err.message;
   } finally {
     submitButton.disabled = false;
-    submitButton.textContent = idleLabel;
+    if (submitButton.textContent === "照合しています…") {
+      submitButton.textContent = idleLabel;
+    }
   }
 });
 
 document.getElementById("resultContinue").addEventListener("click", () => {
   dialog.close();
-  resetForNext();
   window.scrollTo(0, 0);
 });
 document.getElementById("resultToZukan").addEventListener("click", () => {
   dialog.close();
-  resetForNext();
   callbacks.onShowZukan();
 });
 document.getElementById("resultEdit").addEventListener("click", async () => {
   dialog.close();
-  const wasEditing = Boolean(editing);
-  if (!wasEditing) {
-    // 連続登録の「買った日と場所」は、修正が終わったら元に戻す。
-    carryNote.textContent = "買った日と場所は前回のままです。違うときは書き換えてください。";
-    carryNote.hidden = false;
-  }
   try {
     await startEdit(lastSavedItemId);
   } catch (err) {
