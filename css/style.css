@@ -119,7 +119,27 @@ main { max-width: 44rem; margin: 0 auto; padding: 1rem; }
   color: var(--ink-soft);
   font: 700 1.25rem/1 var(--serif);
   letter-spacing: .1em;
+  width: 100%;
+  min-height: 9.5rem;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color .12s, transform .12s;
 }
+/* 押せることを示す小さな案内（J-25）。読み上げは aria-label が受け持つ。 */
+.slot-hidden::after {
+  content: "＋ 登録";
+  margin-top: .6rem;
+  font: 700 .75rem/1 var(--sans);
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+@media (hover: hover) {
+  .slot-hidden:hover { border-color: var(--ink-soft); }
+}
+.slot-hidden:active { background: var(--slot); transform: scale(.96); }
+.slot-hidden:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .slot-photo { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: var(--slot); }
 .slot-text { padding: .3rem .4rem .4rem; overflow-wrap: anywhere; }
 .slot-name { display: block; font-weight: 700; }

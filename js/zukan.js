@@ -11,6 +11,7 @@ let currentData = null;
 let openPrefs = new Set();
 let onUnauthorized = () => {};
 let onEdit = () => {};
+let onRegister = () => {};
 
 const recordDialog = document.getElementById("recordDialog");
 const recordList = document.getElementById("recordList");
@@ -106,6 +107,16 @@ function unmatchedSlot(entry) {
   return photoSlot(entry, entry.inputName, meta, "slot-unmatched", [entry]);
 }
 
+// 未所有の枠。押すとその県（広域）を選んだ登録画面へ進む（J-25）。
+// 枠が持つのは県の情報だけ。どの商品の枠かはサーバーから受け取っていないので、DOMにも変数にも無い。
+function hiddenSlot(pref) {
+  const button = el("button", "slot slot-hidden", HIDDEN_LABEL);
+  button.type = "button";
+  button.setAttribute("aria-label", `${pref.name}の未登録の枠。この${pref.isWide ? "広域" : "県"}で登録する`);
+  button.addEventListener("click", () => onRegister({ isWide: Boolean(pref.isWide), code: pref.code }));
+  return button;
+}
+
 function appendGroup(body, label, entries, toSlot) {
   if (entries.length === 0) {
     return;
@@ -122,7 +133,7 @@ function renderPrefBody(pref, body) {
     const slots = el("div", "slots");
     mains.forEach((entry) => slots.append(ownedSlot(entry)));
     for (let i = 0; i < pref.hiddenCount; i += 1) {
-      slots.append(el("div", "slot slot-hidden", HIDDEN_LABEL));
+      slots.append(hiddenSlot(pref));
     }
     body.append(slots);
   }
@@ -202,6 +213,10 @@ function render() {
 
 export function setZukanEditHandler(handler) {
   onEdit = handler;
+}
+
+export function setZukanRegisterHandler(handler) {
+  onRegister = handler;
 }
 
 export function setZukanUnauthorizedHandler(handler) {

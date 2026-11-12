@@ -266,6 +266,19 @@ export function resetRegisterForm() {
   resetForm();
 }
 
+// 図鑑の「？？？」枠から開いたときに呼ぶ（J-25）。初期状態にしてから商品の県だけ選ぶ。
+export function startRegisterFor({ isWide, code }) {
+  resetForm();
+  const value = isWide ? `${WIDE_PREFIX}${code}` : code;
+  prefSelect.value = value;
+  if (prefSelect.value !== value) {
+    prefSelect.value = "";
+    message.textContent = "この枠の都道府県を選べませんでした。手で選んでください。";
+  }
+  callbacks.onShowRegister();
+  window.scrollTo(0, 0);
+}
+
 // ---------- 修正（D-19） ----------
 
 function clearExistingPhotos() {

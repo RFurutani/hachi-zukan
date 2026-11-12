@@ -2,8 +2,15 @@
 import { fetchMe } from "./api.js";
 import { APP_VERSION, GOOGLE_CLIENT_ID, IS_GOOGLE_CONFIGURED } from "./config.js";
 import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store.js";
-import { refreshZukan, clearZukan, setZukanEditHandler, setZukanUnauthorizedHandler } from "./zukan.js";
-import { cancelEdit, prepareRegisterForm, resetRegisterForm, setRegisterCallbacks, startEdit } from "./register.js";
+import { refreshZukan, clearZukan, setZukanEditHandler, setZukanRegisterHandler, setZukanUnauthorizedHandler } from "./zukan.js";
+import {
+  cancelEdit,
+  prepareRegisterForm,
+  resetRegisterForm,
+  setRegisterCallbacks,
+  startEdit,
+  startRegisterFor,
+} from "./register.js";
 import "./diagnostics.js";
 
 const loginScreen = document.getElementById("loginScreen");
@@ -152,6 +159,7 @@ setRegisterCallbacks({
     refreshZukan("記録を削除しました。");
   },
 });
+setZukanRegisterHandler(startRegisterFor);
 setZukanEditHandler((itemId) => {
   startEdit(itemId).catch((err) => refreshZukan(err.message));
 });
