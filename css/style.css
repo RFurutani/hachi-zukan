@@ -244,6 +244,48 @@ input[type="text"], input[type="date"], input[type="file"], select, textarea {
 }
 .record-close { margin-top: .5rem; }
 
+/* ---------- カバン付け替えメモ（J-27） ---------- */
+.slot-attach {
+  min-height: 2.75rem;
+  margin-top: auto;
+  padding: .2rem .3rem;
+  border: 0;
+  border-top: 1px solid var(--slot);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.3;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.slot-attach + .slot-edit { margin-top: 0; }
+.slot-attach:active, .slot-edit:active { background: var(--slot); }
+.slot-attach:disabled { color: var(--ink-soft); cursor: wait; }
+.slot-attached { color: var(--ink); font-weight: 700; }
+.bag-now {
+  margin: .6rem 0 .2rem;
+  padding: .5rem .7rem;
+  border-left: 4px solid var(--rim);
+  background: var(--sheet);
+  font-size: .9375rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.bag-now-name { font-weight: 700; }
+.bag-now-date { color: var(--ink-soft); font-size: .8125rem; }
+.attach-list { margin: .3rem 0 0; padding: 0; list-style: none; }
+.attach-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .3rem 0;
+  border-bottom: 1px solid var(--slot);
+  font-variant-numeric: tabular-nums;
+}
+.attach-row .button { min-height: 2.75rem; min-width: 2.75rem; }
+
 /* ---------- 照合結果：このアプリで一番目立たせる場面 ---------- */
 .result {
   width: min(24rem, calc(100vw - 2rem));

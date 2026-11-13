@@ -1,7 +1,17 @@
 // 登録画面（F-01）、記録の修正・削除（D-19）、照合結果の演出（F-02）。
 // 表示は textContent のみ（S-04）。
 // 前回の入力は引き継がない（J-23）。登録の保存後・登録タブを開いたとき・修正をやめたときは全項目を初期状態に戻す。
-import { deleteItem, fetchItem, fetchPhoto, fetchPrefectures, patchItem, postItem } from "./api.js";
+import {
+  deleteAttachment,
+  deleteItem,
+  fetchAttachments,
+  fetchItem,
+  fetchPhoto,
+  fetchPrefectures,
+  patchItem,
+  postItem,
+} from "./api.js";
+import { describeAttachedOn } from "./dates.js";
 import { compressImage } from "./photo.js";
 
 const MAX_PHOTOS = 5;
@@ -34,6 +44,15 @@ const headline = document.getElementById("resultHeadline");
 const detail = document.getElementById("resultDetail");
 
 const deleteDialog = document.getElementById("deleteDialog");
+
+const attachHistory = document.getElementById("attachHistory");
+const attachList = document.getElementById("attachList");
+const attachEmpty = document.getElementById("attachEmpty");
+const attachMessage = document.getElementById("attachMessage");
+const attachDeleteDialog = document.getElementById("attachDeleteDialog");
+const attachDeleteDetail = document.getElementById("attachDeleteDetail");
+// 消す確認をしている履歴（{ id, attachedOn }）。
+let pendingAttachDelete = null;
 
 let rating = 0;
 let existingUrls = [];
@@ -238,6 +257,7 @@ clearPhotosButton.addEventListener("click", () => {
 
 function leaveEdit() {
   editing = null;
+  clearAttachHistory();
   clearExistingPhotos();
   editBanner.hidden = true;
   deleteButton.hidden = true;
@@ -278,6 +298,91 @@ export function startRegisterFor({ isWide, code }) {
   callbacks.onShowRegister();
   window.scrollTo(0, 0);
 }
+
+// ---------- カバンに付けた日の履歴（J-27） ----------
+
+function clearAttachHistory() {
+  attachList.textContent = "";
+  attachMessage.textContent = "";
+  attachHistory.hidden = true;
+}
+
+function renderAttachHistory(attachments) {
+  attachList.textContent = "";
+  attachEmpty.hidden = attachments.length > 0;
+  for (const attachment of attachments) {
+    const row = document.createElement("li");
+    row.className = "attach-row";
+    const label = document.createElement("span");
+    label.textContent = describeAttachedOn(attachment.attachedOn);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "button button-small";
+    remove.textContent = "消す";
+    remove.setAttribute("aria-label", `${attachment.attachedOn} の記録を消す`);
+    remove.addEventListener("click", () => {
+      pendingAttachDelete = attachment;
+      attachDeleteDetail.textContent = `${attachment.attachedOn} に付けた記録を消します。`;
+      attachDeleteDialog.showModal();
+    });
+    row.append(label, remove);
+    attachList.append(row);
+  }
+  attachHistory.hidden = false;
+}
+
+async function loadAttachHistory(itemId) {
+  try {
+    const res = await fetchAttachments(itemId);
+    if (res.status === 401) {
+      callbacks.onUnauthorized();
+      return;
+    }
+    if (!editing || editing.id !== itemId) {
+      return; // 読み込み中に別の記録へ移った
+    }
+    if (!res.ok) {
+      renderAttachHistory([]);
+      attachMessage.textContent = `付けた日の履歴を読み込めませんでした（HTTP ${res.status}）。`;
+      return;
+    }
+    renderAttachHistory((await res.json()).attachments);
+  } catch {
+    if (editing && editing.id === itemId) {
+      renderAttachHistory([]);
+      attachMessage.textContent = "付けた日の履歴を読み込めませんでした。通信を確認してください。";
+    }
+  }
+}
+
+document.getElementById("attachDeleteCancel").addEventListener("click", () => {
+  pendingAttachDelete = null;
+  attachDeleteDialog.close();
+});
+document.getElementById("attachDeleteConfirm").addEventListener("click", async () => {
+  attachDeleteDialog.close();
+  const target = pendingAttachDelete;
+  pendingAttachDelete = null;
+  if (!target || !editing) {
+    return;
+  }
+  const itemId = editing.id;
+  try {
+    const res = await deleteAttachment(target.id);
+    if (res.status === 401) {
+      callbacks.onUnauthorized();
+      return;
+    }
+    if (!res.ok && res.status !== 404) {
+      attachMessage.textContent = `消せませんでした（HTTP ${res.status}）。もう一度押してください。`;
+      return;
+    }
+    await loadAttachHistory(itemId);
+    attachMessage.textContent = `${target.attachedOn} の記録を消しました。`;
+  } catch {
+    attachMessage.textContent = "サーバーに接続できません。通信を確認してもう一度押してください。";
+  }
+});
 
 // ---------- 修正（D-19） ----------
 
@@ -352,6 +457,7 @@ export async function startEdit(itemId) {
   memoInput.value = item.memo || "";
   renderExistingPhotos(item.photoIds);
   updatePhotoCount();
+  loadAttachHistory(item.id);
 
   editBanner.hidden = false;
   deleteButton.hidden = false;

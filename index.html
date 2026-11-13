@@ -40,6 +40,7 @@
           <option value="progress">進捗順</option>
         </select>
       </div>
+      <p id="bagNow" class="bag-now" hidden></p>
       <p id="zukanMessage" class="message" role="status"></p>
       <div id="zukanList"></div>
     </section>
@@ -95,6 +96,12 @@
           <label for="memoInput">メモ（任意・200文字まで）</label>
           <textarea id="memoInput" rows="2" maxlength="200"></textarea>
         </div>
+        <div id="attachHistory" class="field attach-history" hidden>
+          <span class="field-label">カバンに付けた日</span>
+          <p id="attachEmpty" class="field-hint">まだ記録がありません。図鑑の「🎒 今日付けた」で記録できます。</p>
+          <ul id="attachList" class="attach-list"></ul>
+          <p id="attachMessage" class="message" role="status"></p>
+        </div>
         <p id="registerMessage" class="message message-error" role="alert"></p>
         <button id="registerButton" type="submit" class="button button-primary">登録して照合する</button>
         <button id="deleteButton" type="button" class="button button-danger" hidden>この記録を削除する</button>
@@ -120,6 +127,15 @@
   <div class="result-actions">
     <button id="deleteConfirm" type="button" class="button button-danger">削除する</button>
     <button id="deleteCancel" type="button" class="button">やめる</button>
+  </div>
+</dialog>
+
+<dialog id="attachDeleteDialog" class="result">
+  <p class="result-headline">この日の記録を消しますか？</p>
+  <p id="attachDeleteDetail" class="result-detail"></p>
+  <div class="result-actions">
+    <button id="attachDeleteConfirm" type="button" class="button button-danger">消す</button>
+    <button id="attachDeleteCancel" type="button" class="button">やめる</button>
   </div>
 </dialog>
 

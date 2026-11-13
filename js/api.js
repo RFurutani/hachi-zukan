@@ -52,6 +52,25 @@ export function deleteItem(itemId) {
   });
 }
 
+// 付けた日の記録（J-27）。日付を付けずに呼ぶと、Worker が日本時間の当日で保存する。
+export function postAttachment(itemId) {
+  return fetch(`${API_BASE}/api/items/${encodeURIComponent(itemId)}/attachments`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+}
+
+export function fetchAttachments(itemId) {
+  return fetch(`${API_BASE}/api/items/${encodeURIComponent(itemId)}/attachments`, { headers: authHeaders() });
+}
+
+export function deleteAttachment(attachmentId) {
+  return fetch(`${API_BASE}/api/attachments/${encodeURIComponent(attachmentId)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+}
+
 export function fetchPhoto(photoId) {
   return fetch(`${API_BASE}/api/photos/${encodeURIComponent(photoId)}`, { headers: authHeaders() });
 }
