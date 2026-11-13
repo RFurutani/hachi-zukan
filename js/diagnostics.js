@@ -40,6 +40,9 @@ async function runDiagnostics() {
     if (res.ok) {
       const data = await res.json();
       addRow("API疎通", `OK（${elapsed}ms、DB: ${data.db}、KV: ${data.kv}）`);
+      // 画面と Worker の版がそろっているか（反映漏れの確認）。
+      const apiVersion = data.version ? `v${data.version}` : "不明（古い Worker）";
+      addRow("APIの版数", data.version === APP_VERSION ? apiVersion : `${apiVersion}（画面は v${APP_VERSION}。反映が済んでいません）`);
     } else {
       addRow("API疎通", `異常（HTTP ${res.status}、${elapsed}ms）`);
     }
