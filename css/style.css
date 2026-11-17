@@ -285,6 +285,37 @@ input[type="text"], input[type="date"], input[type="file"], select, textarea {
   font-variant-numeric: tabular-nums;
 }
 .attach-row .button { min-height: 2.75rem; min-width: 2.75rem; }
+.attach-summary { margin: .2rem 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- カバンの期間（J-28） ---------- */
+.slot-attach-totals { color: var(--ink); }
+.slot-periods { margin-top: .2rem; font-size: .8125rem; }
+.slot-periods-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.slot-periods-list { margin: 0; padding-left: 1rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.bag-title { margin: .2rem 0 .3rem; font-size: 1.0625rem; }
+.bag-list { margin: .5rem 0 0; padding: 0; list-style: none; }
+.bag-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .1rem .6rem;
+  padding: .6rem .2rem;
+  border-bottom: 1px solid var(--slot);
+  font-variant-numeric: tabular-nums;
+}
+.bag-row-current { padding: .6rem .7rem; border-left: 4px solid var(--rim); background: var(--sheet); }
+.bag-row-badge { grid-column: 1 / -1; grid-row: 1; font-size: .8125rem; font-weight: 700; }
+.bag-row-period { grid-column: 1; grid-row: 1; color: var(--ink-soft); font-size: .875rem; }
+.bag-row-name { grid-column: 1; grid-row: 2; font-weight: 700; overflow-wrap: anywhere; }
+.bag-row-days { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-weight: 700; white-space: nowrap; }
+.bag-row-current .bag-row-period { grid-row: 2; }
+.bag-row-current .bag-row-name { grid-row: 3; }
+.bag-row-current .bag-row-days { grid-row: 2 / span 2; }
 
 /* ---------- 照合結果：このアプリで一番目立たせる場面 ---------- */
 .result {
@@ -354,3 +385,54 @@ input[type="text"], input[type="date"], input[type="file"], select, textarea {
 @media (prefers-reduced-motion: reduce) {
   .seal { animation: none; }
 }
+
+/* ---------- 図鑑の並べ方（J-30） ---------- */
+.view-switch { display: flex; margin: 0 0 .4rem; border: 1px solid var(--ink); border-radius: 3px; overflow: hidden; }
+.view-switch-button {
+  flex: 1;
+  min-height: 2.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 700 .9375rem/1 var(--sans);
+  cursor: pointer;
+}
+.view-switch-button + .view-switch-button { border-left: 1px solid var(--ink); }
+.view-switch-button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.sort-controls { display: inline-flex; align-items: center; gap: .5rem; }
+.timeline-note { margin: .6rem 0 .5rem; font-size: .875rem; color: var(--ink-soft); }
+.slot-no { display: block; font: 700 .8125rem/1.3 var(--serif); color: var(--rim); font-variant-numeric: tabular-nums; }
+.slot-kind { color: var(--alert); }
+
+/* ---------- 画面の下のお知らせ・取り消し（J-31） ---------- */
+.toast {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: .4rem .5rem .4rem .9rem;
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--sheet);
+  font-size: .9375rem;
+  line-height: 1.4;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .25);
+}
+.toast-text { flex: 1; overflow-wrap: anywhere; }
+.toast-undo {
+  min-width: 5.5rem;
+  min-height: 2.75rem;
+  border: 1px solid var(--rim-light);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--rim-light);
+  font: 700 .9375rem/1 var(--sans);
+  cursor: pointer;
+}
+.toast-undo:disabled { opacity: .55; }

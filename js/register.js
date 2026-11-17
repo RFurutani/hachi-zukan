@@ -11,7 +11,7 @@ import {
   patchItem,
   postItem,
 } from "./api.js";
-import { describeAttachedOn } from "./dates.js";
+import { describeAttachTotals, describePeriod, describePeriodDays } from "./dates.js";
 import { compressImage } from "./photo.js";
 
 const MAX_PHOTOS = 5;
@@ -48,6 +48,7 @@ const deleteDialog = document.getElementById("deleteDialog");
 const attachHistory = document.getElementById("attachHistory");
 const attachList = document.getElementById("attachList");
 const attachEmpty = document.getElementById("attachEmpty");
+const attachSummary = document.getElementById("attachSummary");
 const attachMessage = document.getElementById("attachMessage");
 const attachDeleteDialog = document.getElementById("attachDeleteDialog");
 const attachDeleteDetail = document.getElementById("attachDeleteDetail");
@@ -304,17 +305,22 @@ export function startRegisterFor({ isWide, code }) {
 function clearAttachHistory() {
   attachList.textContent = "";
   attachMessage.textContent = "";
+  attachSummary.textContent = "";
+  attachSummary.hidden = true;
   attachHistory.hidden = true;
 }
 
-function renderAttachHistory(attachments) {
+// 期間と日数は Worker が計算した値（J-28）。
+function renderAttachHistory({ attachments = [], count = 0, totalDays = 0 } = {}) {
   attachList.textContent = "";
   attachEmpty.hidden = attachments.length > 0;
+  attachSummary.textContent = describeAttachTotals(count, totalDays);
+  attachSummary.hidden = attachments.length === 0;
   for (const attachment of attachments) {
     const row = document.createElement("li");
     row.className = "attach-row";
     const label = document.createElement("span");
-    label.textContent = describeAttachedOn(attachment.attachedOn);
+    label.textContent = `${describePeriod(attachment)}・${describePeriodDays(attachment)}`;
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "button button-small";
@@ -342,14 +348,14 @@ async function loadAttachHistory(itemId) {
       return; // 読み込み中に別の記録へ移った
     }
     if (!res.ok) {
-      renderAttachHistory([]);
+      renderAttachHistory();
       attachMessage.textContent = `付けた日の履歴を読み込めませんでした（HTTP ${res.status}）。`;
       return;
     }
-    renderAttachHistory((await res.json()).attachments);
+    renderAttachHistory(await res.json());
   } catch {
     if (editing && editing.id === itemId) {
-      renderAttachHistory([]);
+      renderAttachHistory();
       attachMessage.textContent = "付けた日の履歴を読み込めませんでした。通信を確認してください。";
     }
   }

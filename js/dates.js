@@ -16,3 +16,24 @@ export function describeAttachedOn(attachedOn, now = Date.now()) {
   const days = daysBetween(attachedOn, todayInJapan(now));
   return `${attachedOn}（${days <= 0 ? "今日" : `${days}日前`}）`;
 }
+
+// カバンの期間（J-28）。日数は Worker が日本時間で数えた値をそのまま使う。
+// 「2026-11-10〜今日（継続中）」「2026-11-05〜2026-11-09」「2026-11-14（同じ日に付け替え）」
+export function describePeriod(period) {
+  if (period.current) {
+    return `${period.from}〜今日（継続中）`;
+  }
+  if (period.sameDay) {
+    return `${period.from}（同じ日に付け替え）`;
+  }
+  return period.from === period.to ? period.from : `${period.from}〜${period.to}`;
+}
+
+// 継続中は「5日目」、終わった期間は「5日」。
+export function describePeriodDays(period) {
+  return period.current ? `${period.days}日目` : `${period.days}日`;
+}
+
+export function describeAttachTotals(count, days) {
+  return `付けた回数：${count}回／合計：${days}日`;
+}

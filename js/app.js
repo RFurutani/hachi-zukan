@@ -2,7 +2,15 @@
 import { fetchMe } from "./api.js";
 import { APP_VERSION, GOOGLE_CLIENT_ID, IS_GOOGLE_CONFIGURED } from "./config.js";
 import { saveIdToken, loadIdToken, clearIdToken, isExpired } from "./token-store.js";
-import { refreshZukan, clearZukan, setZukanEditHandler, setZukanRegisterHandler, setZukanUnauthorizedHandler } from "./zukan.js";
+import {
+  refreshZukan,
+  clearZukan,
+  setZukanAttachChangedHandler,
+  setZukanEditHandler,
+  setZukanRegisterHandler,
+  setZukanUnauthorizedHandler,
+} from "./zukan.js";
+import { hideToast } from "./toast.js";
 import {
   cancelEdit,
   prepareRegisterForm,
@@ -11,6 +19,7 @@ import {
   startEdit,
   startRegisterFor,
 } from "./register.js";
+import { clearBag, refreshBag, setBagUnauthorizedHandler } from "./bag.js";
 import "./diagnostics.js";
 
 const loginScreen = document.getElementById("loginScreen");
@@ -22,6 +31,13 @@ const tabZukan = document.getElementById("tabZukan");
 const tabRegister = document.getElementById("tabRegister");
 const zukanView = document.getElementById("zukanView");
 const registerView = document.getElementById("registerView");
+const tabBag = document.getElementById("tabBag");
+const bagView = document.getElementById("bagView");
+const TABS = [
+  { name: "zukan", tab: tabZukan, view: zukanView },
+  { name: "register", tab: tabRegister, view: registerView },
+  { name: "bag", tab: tabBag, view: bagView },
+];
 
 const NEUTRAL_TITLE = "hachi-zukan";
 let formPrepared = false;
@@ -36,12 +52,11 @@ function showLogin(text) {
   document.title = NEUTRAL_TITLE;
 }
 
-function showTab(tab) {
-  const isZukan = tab === "zukan";
-  zukanView.hidden = !isZukan;
-  registerView.hidden = isZukan;
-  tabZukan.setAttribute("aria-pressed", String(isZukan));
-  tabRegister.setAttribute("aria-pressed", String(!isZukan));
+function showTab(name) {
+  for (const { name: tabName, tab, view } of TABS) {
+    view.hidden = tabName !== name;
+    tab.setAttribute("aria-pressed", String(tabName === name));
+  }
 }
 
 async function checkLoginState() {
@@ -91,6 +106,7 @@ async function checkLoginState() {
 }
 
 function handleExpiredSession() {
+  hideToast();
   clearIdToken();
   showLogin("ログインの期限が切れました。もう一度ログインすると、入力の続きから送れます。");
 }
@@ -138,10 +154,17 @@ tabRegister.addEventListener("click", () => {
   }
   showTab("register");
 });
+tabBag.addEventListener("click", () => {
+  showTab("bag");
+  refreshBag();
+});
 logoutButton.addEventListener("click", () => {
   cancelEdit();
+  // ログアウトしたあとに「取り消す」を押せないようにする。
+  hideToast();
   clearIdToken();
   clearZukan();
+  clearBag();
   appTitle.textContent = "";
   showLogin("ログアウトしました。");
   formPrepared = false;
@@ -149,6 +172,12 @@ logoutButton.addEventListener("click", () => {
 });
 
 setZukanUnauthorizedHandler(handleExpiredSession);
+setZukanAttachChangedHandler(() => {
+  if (!bagView.hidden) {
+    refreshBag();
+  }
+});
+setBagUnauthorizedHandler(handleExpiredSession);
 setRegisterCallbacks({
   onUnauthorized: handleExpiredSession,
   onSaved: () => refreshZukan(),

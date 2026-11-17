@@ -27,18 +27,25 @@
     <nav class="tabs" aria-label="画面の切り替え">
       <button id="tabZukan" type="button" class="tab" aria-pressed="true">図鑑</button>
       <button id="tabRegister" type="button" class="tab" aria-pressed="false">登録</button>
+      <button id="tabBag" type="button" class="tab" aria-pressed="false">🎒 カバン</button>
     </nav>
   </header>
 
   <main>
     <section id="zukanView">
+      <div class="view-switch" role="group" aria-label="図鑑の並べ方">
+        <button id="viewByPref" type="button" class="view-switch-button" aria-pressed="true">県別</button>
+        <button id="viewByOrder" type="button" class="view-switch-button" aria-pressed="false">登録順</button>
+      </div>
       <div class="sort-row">
         <button id="exportButton" type="button" class="link-button">記録をCSVで書き出す</button>
-        <label for="sortOrder">並び</label>
-        <select id="sortOrder">
-          <option value="north">北から</option>
-          <option value="progress">進捗順</option>
-        </select>
+        <span id="sortControls" class="sort-controls">
+          <label for="sortOrder">並び</label>
+          <select id="sortOrder">
+            <option value="north">北から</option>
+            <option value="progress">進捗順</option>
+          </select>
+        </span>
       </div>
       <p id="bagNow" class="bag-now" hidden></p>
       <p id="zukanMessage" class="message" role="status"></p>
@@ -98,6 +105,7 @@
         </div>
         <div id="attachHistory" class="field attach-history" hidden>
           <span class="field-label">カバンに付けた日</span>
+          <p id="attachSummary" class="attach-summary" hidden></p>
           <p id="attachEmpty" class="field-hint">まだ記録がありません。図鑑の「🎒 今日付けた」で記録できます。</p>
           <ul id="attachList" class="attach-list"></ul>
           <p id="attachMessage" class="message" role="status"></p>
@@ -106,6 +114,13 @@
         <button id="registerButton" type="submit" class="button button-primary">登録して照合する</button>
         <button id="deleteButton" type="button" class="button button-danger" hidden>この記録を削除する</button>
       </form>
+    </section>
+
+    <section id="bagView" hidden>
+      <h2 class="bag-title">カバンに付けた記録（新しい順）</h2>
+      <p class="field-hint">期間は、付けた日から次の記録の日の前日まで。日数は日本時間で数えます。</p>
+      <p id="bagMessage" class="message" role="status"></p>
+      <ol id="bagList" class="bag-list"></ol>
     </section>
   </main>
 </div>
@@ -152,6 +167,11 @@
   <dl id="diagnosticsList"></dl>
   <button id="diagnosticsClose" type="button" class="button">閉じる</button>
 </dialog>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden>
+  <span id="toastText" class="toast-text"></span>
+  <button id="toastUndo" type="button" class="toast-undo" hidden>取り消す</button>
+</div>
 
 <footer class="footer">
   <span id="versionLabel"></span>

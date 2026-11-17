@@ -60,6 +60,11 @@ export function postAttachment(itemId) {
   });
 }
 
+// カバンの期間の一覧（J-28）。新しい順。
+export function fetchBag() {
+  return fetch(`${API_BASE}/api/bag`, { headers: authHeaders() });
+}
+
 export function fetchAttachments(itemId) {
   return fetch(`${API_BASE}/api/items/${encodeURIComponent(itemId)}/attachments`, { headers: authHeaders() });
 }
